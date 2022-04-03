@@ -21,24 +21,31 @@ class TensorDataset():
     self.img_size_height= img_size_height
     self.img_formats = ['bmp', 'jpg', 'jpeg', 'png']
     self.imgaug= imgaug
+    self.get_item()
 
     #Data check
+  def data_check(self):
     with open(self.path, 'r') as f:
       for line in f.readlines():
         data_path= line.strip()
-        
+        # print(data_path, "datasets30")
         if os.path.exists(data_path):
           img_type= data_path.split(".")[-1]
+          # print(img_type, "line 33 datasets.py")
           if img_type not in self.img_formats:
             raise Exception("img type error:%s" % img_type)
           else:
             self.data_list.append(data_path)
         else: 
           raise Exception("%s does not exist" % data_path)
-
-  def __getitem__(self, index):
-    img_path= self.data_list[index]
+    return self.data_list    
+ 
+  
+  def get_item(self):
+    self.data_list= self.data_check()
+    img_path= self.data_list[0]
     print(img_path)
-    # label_path= img_path.split(".")[0] + ".txt"          
-
-          
+  #   label_path= img_path.replace('images', 'labels').replace(os.path.splitext(x)[-1], '.txt')
+  #   print(label_path)    
+    # print(self.data_list[0], "datasets")
+       
