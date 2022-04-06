@@ -14,6 +14,7 @@ def contrast_and_brightness(img):
   blank= np.zeros(img.shape, img.dtype)
   #dst= alpha * img + beta * blank
   dst= cv2.addWeighted(img, alpha, blank, 1-alpha, beta)
+  # print(dst)
   return dst
 
 def motion_blur(image):
@@ -52,14 +53,29 @@ def augment_hsv(img, hgain = 0.0138, sgain= 0.678, vgain= 0.36):
   img= cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR) 
   return img
 
-
+def random_resize(img):
+  h, w, _= img.shape
+  rw= int(w * random.uniform(0.8, 1))
+  rh= int(h * random.uniform(0.8, 1))
+  
+  img= cv2.resize(img, (rw, rh), interpolation= cv2.INTER_LINEAR)
+  img= cv2.resize(img, (w, h), interpolation= cv2.INTER_LINEAR)
+  return img
+  
 def img_aug(img):
   img= contrast_and_brightness(img)
   # img= motion_blur(img)
   # img= random_resize(img)
   # img= augment_hsv(img)
+  # print("In the loop 61")
   return img
 
+def collate_fn(batch):
+  img, label= zip(*batch)
+  for i, l in enumerate(label):
+    if l.shape[0] > 0:
+      l[:, 0] = i
+    return torch.stack(img), torch.cat(label, 0)  
 
 class TensorDataset():
 #   print(os.path.exists('data/small_coco/smallcoco.txt'))
@@ -73,7 +89,7 @@ class TensorDataset():
     self.img_size_height= img_size_height
     self.img_formats = ['bmp', 'jpg', 'jpeg', 'png']
     self.imgaug= imgaug
-    self.get_item()
+    self.__getitem__(0)
 
     #Data check
   def data_check(self):
@@ -93,12 +109,12 @@ class TensorDataset():
     return self.data_list    
  
   
-  def get_item(self):
+  def __getitem__(self, index):
     self.data_list= self.data_check()
-    img_path= self.data_list[0]
-    # print(img_path)
+    img_path= self.data_list[index]
+    # print(img_path, "datasets 109")
     label_path= img_path.replace('images', 'labels').replace(os.path.splitext(img_path)[-1], '.txt')
-    # print(label_path)    
+    # print(label_path, "datasets 111")    
 
     # normalization operation
     img= cv2.imread(img_path)
@@ -107,4 +123,32 @@ class TensorDataset():
     # data augmentation
     if self.imgaug == True:
       img= img_aug(img)
-       
+    # print(img.shape, "before")  
+    img= img.transpose(2, 0, 1)
+    # print(img.shape, "after")
+
+    # Load the label file
+    if os.path.exists(label_path):
+      label= []
+      with open(label_path, 'r') as f:
+        for line in f.readlines():
+          l= line.strip().split(" ")
+          label.append([0, l[0], l[1], l[2], l[3], l[4]])
+      label= np.array(label, dtype= np.float32) 
+
+      if label.shape[0]:
+        assert label.shape[1] == 6, '> 5 label columns: %s' % label_path
+    else:
+      raise Exception("%s does not exist"% label_path)       
+    
+    img= torch.from_numpy(img)
+    label = torch.from_numpy(label)
+
+    print(img.shape)
+    print(label.shape)
+
+    return img, label
+
+  def __len__(self):
+    self.data_list= self.data_check()
+    return len(self.data_list)  
