@@ -9,7 +9,7 @@ class ShuffleV2Block(nn.Module):
     assert stride in [1, 2]
 
     self.mid_channels= mid_channels
-    self,ksize= ksize
+    self.ksize= ksize
     pad= ksize // 2
     self.pad= pad
     self.inp= inp
@@ -49,4 +49,46 @@ class ShuffleV2Block(nn.Module):
     
     else:
       self.branch_proj= None
+
+  def forward(self, old_x):
+    if self.stride == 1:
+      x_proj, x= self.channel_shuffle(old_x)
+      return torch.cat((x_proj, self.branch_main(x)), 1)
+    elif self.stride==2:
+      x_proj= old_x
+      x= old_x
+      return torch.cat((self.branch_proj(x_proj), self.branch_main(x)), 1)
+
+  def channel_shuffle(self, x):
+    batch_size, num_channels, height, width= x.data.size()
+    assert (num_channels % 4 == 0)
+    x= x.reshape(batch_size * num_channels // 2, 2, height * width)
+    x= x.permute(1, 0, 2)
+    x= x.reshape(2, -1, num_channels // 2, height, width)
+    return x[0], x[1]
+
+
+class ShuffleNetV2(nn.Module):
+  def __init__(self, stage_out_channels, load_params):
+    super(ShuffleNetV2, self).__init__()
+    self.stage_repeats = [4, 8, 4]
+    self.stage_out_channels = stage_out_channels
+
+    #building first layer
+    input_channel= self.stage_out_channels[1]
+    self.first_conv= nn.Sequential(
+                                    nn.Conv2d(3, input_channel, 3, 2, 1, bias = False),
+                                    nn.BatchNorm2d(input_channel),
+                                    nn.ReLU(inplace= True),
+                                    )
+
+    self.maxpool= nn.MaxPool2d(kernel_size= 3, stride= 2, padding= 1)
+    stage_names= ["stage2", "stage3", "stage4"]
+    for idxstage in range(len(self.stage_repeats)):
+      numrepeat= self.stage_repeats[idxstage]
+      output_channel= self.stage_out_channels[idxstage+2]
+      stageSeq= []
+      for i in range(numrepeat):
+        if i == 0:
+          stageSeq.append(ShuffleV2Block(input_channel, output_channel, mid_channel= output_channel// 2, ksize=3, stride= 2 ))
 
