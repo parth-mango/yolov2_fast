@@ -91,4 +91,37 @@ class ShuffleNetV2(nn.Module):
       for i in range(numrepeat):
         if i == 0:
           stageSeq.append(ShuffleV2Block(input_channel, output_channel, mid_channel= output_channel// 2, ksize=3, stride= 2 ))
+        
+        else: 
+          stageSeq.append(ShuffleV2Block(input_channel // 2, output_channel, mid_channel= output_channel // 2, ksize= 3, stride= 1))
+
+        input_channel= output_channel
+      setattr(self, stage_names[idx_stage], nn.Sequential(*stage2Seq))
+
+    if load_param == False:
+      self.initialize_weights()
+    else:
+      print(" load param ....")
+
+  def forward(self, x):
+    x= self.first_conv(x)
+    x= self.maxpool(x)
+    C1= self.stage2(x)
+    C2= self.stage3(C1)
+    C3= self.stage4(C2)
+    return C2, C3
+
+  def _initialize_weights(self):
+    print("initialize_weights...")
+    device= torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    self.load_state_dict(torch.load("/content/yolov2_fast/model/backbone/backbone.pth", map_location= device), strict= True)
+
+if __name__ == "main":
+  model= ShuffleNetV2()
+  print(model)
+  test_data= torch.rand(1, 3, 320, 320)
+  test_outputs= model(test_data)
+  for out in test_outputs:
+    print(out.size())
+
 
