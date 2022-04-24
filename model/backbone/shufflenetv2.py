@@ -69,7 +69,7 @@ class ShuffleV2Block(nn.Module):
 
 
 class ShuffleNetV2(nn.Module):
-  def __init__(self, stage_out_channels, load_params):
+  def __init__(self, stage_out_channels, load_param):
     super(ShuffleNetV2, self).__init__()
     self.stage_repeats = [4, 8, 4]
     self.stage_out_channels = stage_out_channels
@@ -90,16 +90,16 @@ class ShuffleNetV2(nn.Module):
       stageSeq= []
       for i in range(numrepeat):
         if i == 0:
-          stageSeq.append(ShuffleV2Block(input_channel, output_channel, mid_channel= output_channel// 2, ksize=3, stride= 2 ))
+          stageSeq.append(ShuffleV2Block(input_channel, output_channel, mid_channels= output_channel// 2, ksize=3, stride= 2 ))
         
         else: 
-          stageSeq.append(ShuffleV2Block(input_channel // 2, output_channel, mid_channel= output_channel // 2, ksize= 3, stride= 1))
+          stageSeq.append(ShuffleV2Block(input_channel // 2, output_channel, mid_channels= output_channel // 2, ksize= 3, stride= 1))
 
         input_channel= output_channel
-      setattr(self, stage_names[idx_stage], nn.Sequential(*stage2Seq))
+      setattr(self, stage_names[idxstage], nn.Sequential(*stageSeq))
 
     if load_param == False:
-      self.initialize_weights()
+      self._initialize_weights()
     else:
       print(" load param ....")
 
