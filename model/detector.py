@@ -18,23 +18,42 @@ class Detector(nn.Module):
     self.output_obj_layers= nn.Conv2d(out_depth, anchor_num, 1, 1, 0, bias= True)
     self.output_cls_layers= nn.Conv2d(out_depth, classes, 1, 1, 0, bias= True)
 
-    def forward(self, x):
-      C2, C3= self.backbone(x)
-      cls_2, obj_2, reg_2, cls_3, obj_3, reg_3= self.fpn(C2, C3)
+  def forward(self, x):
+    C2, C3= self.backbone(x)
+    cls_2, obj_2, reg_2, cls_3, obj_3, reg_3= self.fpn(C2, C3)
 
-      out_reg_2= self.output_reg_layers(reg_2)
-      out_cls_2= self.output_cls_layers(cls_2)
-      out_obj_2= self.output_obj_layers(obj_2)
+    out_reg_2= self.output_reg_layers(reg_2)
+    out_cls_2= self.output_cls_layers(cls_2)
+    out_obj_2= self.output_obj_layers(obj_2)
 
-      out_reg_3= self.output_reg_layers(reg_3)
-      out_cls_3= self.output_cls_layers(cls_3)
-      out_obj_3= self.output_obj_layers(obj_3)
+    out_reg_3= self.output_reg_layers(reg_3)
+    out_cls_3= self.output_cls_layers(cls_3)
+    out_obj_3= self.output_obj_layers(obj_3)
 
-      if self.export_onnx:
-        out_reg_2= out_reg_2.sigmoid()
-        out_obj_2= out_obj_2.sigmoid()
-        out_cls_2= F.softmax(out_cls_2, dim= 1)
+    if self.export_onnx:
+      out_reg_2= out_reg_2.sigmoid()
+      out_obj_2= out_obj_2.sigmoid()
+      out_cls_2= F.softmax(out_cls_2, dim= 1)
 
-        out_reg_3= out_reg_3.sigmoid()
-        out_obj_3= out_obj_3.sigmoid()
-        out_cls_3= F.softmax(out_cls_3, dim= 1)
+      out_reg_3= out_reg_3.sigmoid()
+      out_obj_3= out_obj_3.sigmoid()
+      out_cls_3= F.softmax(out_cls_3, dim= 1)
+
+      print("export onnx ...")
+      
+      return torch.cat((out_reg_2, out_obj_2, out_cls_2), 1).permute(0, 2, 3, 1), \
+              torch.cat((out_reg_3, out_obj_3, out_cls_3), 1).permute(0, 2, 3, 1)
+
+    else: 
+      
+      return out_reg_2, out_obj_2, out_cls_2, out_reg_3, out_obj_3, out_cls_3 
+
+if __name__ == "__main":
+  model= Detector(80, 3, False)         
+  test_data= torch.rand(1, 3, 352, 352)
+  torch.onnx.export(model,                       # model being run
+                    test_data,                   # model input(or a tuple of multiple inputs) 
+                    "test_onnx",                 # where to save the model        
+                    export_params= True,         # stored the trained parameter weights inside the model file
+                    opset_version= 11,           # the onnx version to export the model to    
+                    do_constant_folding= True)   # whether to execute constant folding for optimization         
