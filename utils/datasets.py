@@ -89,32 +89,44 @@ class TensorDataset():
     self.img_size_height= img_size_height
     self.img_formats = ['bmp', 'jpg', 'jpeg', 'png']
     self.imgaug= imgaug
-    self.__getitem__(0)
-
+    # self.__getitem__(0)
     #Data check
-  def data_check(self):
     with open(self.path, 'r') as f:
       for line in f.readlines():
         data_path= line.strip()
-        # print(data_path, "datasets30")
+  
         if os.path.exists(data_path):
           img_type= data_path.split(".")[-1]
-          # print(img_type, "line 33 datasets.py")
           if img_type not in self.img_formats:
             raise Exception("img type error:%s" % img_type)
           else:
             self.data_list.append(data_path)
         else: 
           raise Exception("%s does not exist" % data_path)
-    return self.data_list    
+
+  # def data_check(self):
+  #   with open(self.path, 'r') as f:
+  #     for line in f.readlines():
+  #       data_path= line.strip()
+  #       # print(data_path, "datasets30")
+  #       if os.path.exists(data_path):
+  #         img_type= data_path.split(".")[-1]
+  #         # print(img_type, "line 33 datasets.py")
+  #         if img_type not in self.img_formats:
+  #           raise Exception("img type error:%s" % img_type)
+  #         else:
+  #           self.data_list.append(data_path)
+  #       else: 
+  #         raise Exception("%s does not exist" % data_path)
+  #   return self.data_list    
  
   
   def __getitem__(self, index):
-    self.data_list= self.data_check()
+    print(index, "Index 114")
     img_path= self.data_list[index]
-    # print(img_path, "datasets 109")
+  
     label_path= img_path.replace('images', 'labels').replace(os.path.splitext(img_path)[-1], '.txt')
-    # print(label_path, "datasets 111")    
+       
 
     # normalization operation
     img= cv2.imread(img_path)
@@ -123,9 +135,7 @@ class TensorDataset():
     # data augmentation
     if self.imgaug == True:
       img= img_aug(img)
-    # print(img.shape, "before")  
     img= img.transpose(2, 0, 1)
-    # print(img.shape, "after")
 
     # Load the label file
     if os.path.exists(label_path):
@@ -141,14 +151,17 @@ class TensorDataset():
     else:
       raise Exception("%s does not exist"% label_path)       
     
-    img= torch.from_numpy(img)
-    label = torch.from_numpy(label)
+    print("getitem Executed")
 
-    print(img.shape)
-    print(label.shape)
-
-    return img, label
+    return torch.from_numpy(img), torch.from_numpy(label)
 
   def __len__(self):
-    self.data_list= self.data_check()
+    # self.data_list= self.data_check()
     return len(self.data_list)  
+
+if __name__ == "__main__":
+  data= TensorDataset("/content/yolov2_fast/data/small_coco/smallcoco.txt")
+  print("going in 165")
+  img, label= data.__getitem__(0)
+  print(img.shape)
+  print(label.shape)
