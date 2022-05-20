@@ -125,11 +125,11 @@ class TensorDataset():
     
     img_path= self.data_list[index]
     
-    print(img_path, "Image path")
+    # print(img_path, "Image path")
     # label_path= img_path.replace('images', 'labels').replace(os.path.splitext(img_path)[-1], '.txt')
 
     label_path= img_path.split(".")[0] + ".txt"   
-    print(label_path, "Label path")
+    # print(label_path, "Label path")
 
     # normalization operation
     img= cv2.imread(img_path)
@@ -154,7 +154,7 @@ class TensorDataset():
     else:
       raise Exception("%s does not exist"% label_path)       
     
-    print("getitem Executed")
+    # print("getitem Executed")
 
     return torch.from_numpy(img), torch.from_numpy(label)
 
@@ -164,7 +164,7 @@ class TensorDataset():
 
 if __name__ == "__main__":
   data= TensorDataset("/content/yolov2_fast/data/small_coco/smallcoco.txt")
-  print("going in 165")
+  # print("going in 165")
   img, label= data.__getitem__(0)
   print(img.shape)
   print(label.shape)
