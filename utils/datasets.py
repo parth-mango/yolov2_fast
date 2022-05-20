@@ -122,11 +122,14 @@ class TensorDataset():
  
   
   def __getitem__(self, index):
-    print(index, "Index 114")
+    
     img_path= self.data_list[index]
-  
-    label_path= img_path.replace('images', 'labels').replace(os.path.splitext(img_path)[-1], '.txt')
-       
+    
+    print(img_path, "Image path")
+    # label_path= img_path.replace('images', 'labels').replace(os.path.splitext(img_path)[-1], '.txt')
+
+    label_path= img_path.split(".")[0] + ".txt"   
+    print(label_path, "Label path")
 
     # normalization operation
     img= cv2.imread(img_path)
