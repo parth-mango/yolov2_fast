@@ -44,7 +44,10 @@ def build_target(preds, targets, cfg, device):
       #Map the label coordinates to the feature map
       gain[2:6] = torch.tensor(pred.shape)[[3, 2, 3, 2]]
 
+      gt = targets * gain # scaling 
 
+      if label_num :
+        
 
 def smooth_BCE(eps= 0.1):
   #return positive, negative label smoothing BCE targets
