@@ -47,8 +47,20 @@ def build_target(preds, targets, cfg, device):
       gt = targets * gain # scaling 
 
       if label_num :
-        
 
+        # anchor iou match
+        r=  gt[:, : , 4: 6 ] / anchors_cfg[:, None]  # we are comparing the target(image) w&h with anchor(bounding box) w&h -- normalisation ??
+
+        j= torch.max(r, 1.0/r).max(2)[0] < 2 # here first we find the max between r and 1/r - element wise comparision of tensor, then we find max of 
+                                             # the tensor wrt 3rd dimension(denoted by .max(2)) and this return a tuple with first element as value and                                         
+                                             # second element as index. Finally we compare the value if it is less than 2.
+        t= gt[j] # Only those targets with wh ratio less than 2 are retained 
+        
+      #Expand dimension and copy data                                 
+      #offsets
+      gxy= t[:, 2:4] # grid xy
+      gxi = gain[[2, 3]] - gxy  # inverse - from the other side of origin
+         
 def smooth_BCE(eps= 0.1):
   #return positive, negative label smoothing BCE targets
   return 1.0 - 0.5 * eps, 0.5 * eps
