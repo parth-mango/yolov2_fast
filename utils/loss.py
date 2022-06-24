@@ -8,6 +8,7 @@ layer_index = [0, 0, 0, 1, 1, 1]
 def build_target(preds, targets, cfg, device):
   tcls, tbox, indices, anch= [], [], [], []
   
+  
   #anchor box Quantity, the number of labels in the current batch
   anchor_num, label_num= cfg["anchor_num"], targets.shape[0]    # 3, variable shape of targets(x)
   
@@ -56,16 +57,40 @@ def build_target(preds, targets, cfg, device):
                                              # second element as index. Finally we compare the value if it is less than 2.
         t= gt[j] # Only those targets with wh ratio less than 2 are retained 
         
-      #Expand dimension and copy data                                 
-      #offsets
-      gxy= t[:, 2:4] # grid xy
-      gxi = gain[[2, 3]] - gxy  # inverse - from the other side of origin
+        #Expand dimension and copy data                                 
+        #offsets
+        gxy= t[:, 2:4] # grid xy
+        gxi = gain[[2, 3]] - gxy  # inverse - from the other side of origin
 
-      j,k = ((gxy % 1. < g ) & (gxy > 1.)).T # Rounding off?
-      l, m= ((gxi % 1. < g) & (gxi >1.)).T
-      j= torch.stack((torch.ones_like(j), j, k, l, m)) # stacking "All true value with dim = dim(j)" along with j, k, l,m"
-      t= t.repeat((5, 1, 1 ))[j] # We keep only those targets which have decimal part less than 0.5 either for w or h
-    
+        j,k = ((gxy % 1. < g ) & (gxy > 1.)).T # Rounding off?
+        l, m= ((gxi % 1. < g) & (gxi >1.)).T
+        j= torch.stack((torch.ones_like(j), j, k, l, m)) # stacking "All true value with dim = dim(j)" along with j, k, l,m"
+        t= t.repeat((5, 1, 1 ))[j] # We keep only those targets which have decimal part less than 0.5 either for w or h
+        offsets= (torch.zeros_like(gxy)[None] + off[:, None])[j]
+        
+      else:
+        t= targets[0]
+        offsets= 0
+      
+      #define 
+      b, c= t[: , :2].long().T#image and class
+      gxy= t[:, 2:4] # grid xy
+      gwh= t[:, 4:6] #grid wh
+      gij= (gxy- offsets).long() # Here we are rounding the gxy on the basis of offsets
+      
+      gi, gj = gij.T # grid xy indices
+      
+      # Append
+      a= t[:, 6].long()
+      
+      indices.append((b, a, gj.clamp_(0, gain[3] - 1), gi.clamp_(0, gain[2] - 1))) # clamping the coordinates within the final prediction sizes
+      
+      tbox.append(torch.cat((gxy-gij, gwh), 1)) # Here we are finding the x and y coordinates wrt 1x1 square among the 22x22 of the entire output size
+      
+      anch.append(anchors_cfg[a]) # anchors
+      tcls.append(c) #class
+  return tcls, tbox, indices, anch
+
 
 def smooth_BCE(eps= 0.1):
   #return positive, negative label smoothing BCE targets
@@ -74,7 +99,8 @@ def smooth_BCE(eps= 0.1):
 
 def compute_loss(preds, targets, cfg, device):
   balance= [1.0, 0.4]
-
+  
+  
   ft= torch.cuda.FloatTensor if preds[0].is_cuda else torch.Tensor
   lcls, lbox, lobj= ft([0]), ft([0]), ft([0])  #currently tensor with value as Zero
 
@@ -86,7 +112,7 @@ def compute_loss(preds, targets, cfg, device):
 
   #build gt
   tcls, tbox, indices, anchors= build_target(preds, targets, cfg, device)
-
+  print(tcls)
 
 
 
