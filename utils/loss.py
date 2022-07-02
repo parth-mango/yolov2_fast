@@ -22,7 +22,10 @@ def build_target(preds, targets, cfg, device):
   at= torch.arange(anchor_num, device= device).float().view(anchor_num, 1).repeat(1, label_num) # shape =  3, x, 6
   
   targets= torch.cat((targets.repeat(anchor_num, 1, 1), at[:, :, None]), 2)  # 3, x , 7 --> 0, 1, 2 added to each array as last element
-  
+
+  # We are concatenating anchor number as another dimension to the three repeats of the target 
+
+
   g= 0.5 # bias
 
   off= torch.tensor([[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], ], device= device).float() * g #offsets
